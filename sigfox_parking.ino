@@ -24,6 +24,7 @@ char enterMsg[5]= {'E','n', 't', 'e', 'r'};
 char exitMsg[4]= {'E','x', 'i', 't'};
 int state;
 int ledstate;
+short entryBuffer;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -58,62 +59,65 @@ void setup() {
     } while (initFinish!=3);
     state = STATE_FREE;
     ledstate = 0;
+    entryBuffer = 0;
 }
 
 // the loop function runs over and over again forever
 void loop() {
-    while(true) {
-      bool isClose = smeProximity.rangePollingRead() < 50;
-      switch (state) {
+    bool isClose = smeProximity.rangePollingRead() < 50;
+    switch (state) {
         case STATE_FREE:
-          if (isClose) {
-            setLed(LED_BLUE);
-            sendMsg(enterMsg);
-            state = STATE_TAKEN;
-          } else {
-            setLed(LED_GREEN);
-          }
-          break;
+            if (isClose) {
+                entryBuffer ++;
+            }
+            if (entryBuffer >= 8) {
+                setLed(LED_BLUE);
+                sendMsg(enterMsg);
+                state = STATE_TAKEN;
+            } else {
+                setLed(LED_GREEN);
+            }
+            break;
         case STATE_TAKEN:
-          if (!isClose) {
-            setLed(LED_BLUE);
-            sendMsg(exitMsg);
-            state = STATE_FREE;
-          } else {
-            setLed(LED_RED);
-          }
-      }
-      delay(500);
+            if (!isClose) {
+                setLed(LED_BLUE);
+                sendMsg(exitMsg);
+                state = STATE_FREE;
+            } else {
+                setLed(LED_RED);
+            }
+            break;
     }
+    delay(500);
 }
 
 void setLed(int color) {
-  if (ledstate == color) {
-    color = LED_OFF; // blink
-  }
-  switch (color) {
-    case LED_OFF:
-      ledRedLight(LOW);
-      ledGreenLight(LOW);
-      ledBlueLight(LOW);
-      break;
-    case LED_RED:
-      ledRedLight(HIGH);
-      ledGreenLight(LOW);
-      ledBlueLight(LOW);
-      break;
-    case LED_GREEN:
-      ledRedLight(LOW);
-      ledGreenLight(HIGH);
-      ledBlueLight(LOW);
-      break;
-    case LED_BLUE:
-      ledRedLight(LOW);
-      ledGreenLight(LOW);
-      ledBlueLight(HIGH);
-      break;
-  }
-  ledstate = color;
+    if (ledstate == color) {
+        color = LED_OFF; // blink
+    }
+    switch (color) {
+        case LED_OFF:
+            ledRedLight(LOW);
+            ledGreenLight(LOW);
+            ledBlueLight(LOW);
+            break;
+        case LED_RED:
+            ledRedLight(HIGH);
+            ledGreenLight(LOW);
+            ledBlueLight(LOW);
+            break;
+        case LED_GREEN:
+            ledRedLight(LOW);
+            ledGreenLight(HIGH);
+            ledBlueLight(LOW);
+            break;
+        case LED_BLUE:
+            ledRedLight(LOW);
+            ledGreenLight(LOW);
+            ledBlueLight(HIGH);
+            break;
+    }
+    ledstate = color;
 }
 
 void sendMsg(char* msg) {
