@@ -69,11 +69,14 @@ void loop() {
         case STATE_FREE:
             if (isClose) {
                 entryBuffer ++;
+            } else {
+                entryBuffer = 0;
             }
             if (entryBuffer >= 8) {
                 setLed(LED_BLUE);
                 sendMsg(enterMsg);
                 state = STATE_TAKEN;
+                entryBuffer = 0;
             } else {
                 setLed(LED_GREEN);
             }
