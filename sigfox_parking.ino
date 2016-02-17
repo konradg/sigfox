@@ -12,13 +12,18 @@
 #include <VL6180.h>
 #include <Arduino.h>
 
+#define STATE_FREE 0
+#define STATE_TAKEN 1
 
+#define LED_OFF 0
+#define LED_RED 1
+#define LED_GREEN 2
+#define LED_BLUE 3
 
 char enterMsg[5]= {'E','n', 't', 'e', 'r'};
 char exitMsg[4]= {'E','x', 'i', 't'};
-bool finished;
-bool entered;
-bool ledon;
+int state;
+int ledstate;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -51,47 +56,66 @@ void setup() {
             }
         }
     } while (initFinish!=3);
-    finished = 0;
-    entered = 0;
-    ledon = 0;
+    state = STATE_FREE;
+    ledstate = 0;
 }
 
 // the loop function runs over and over again forever
 void loop() {
-    while(!finished) {
-        char light = smeProximity.rangePollingRead();
-        if (!entered) {
-            if (light > 0 && light < 50) {
-              sendMsg(enterMsg);
-              entered = 1;
-            }
-        } else {
-            if (light >= 50) {
-                sendMsg(exitMsg);
-                finished = 1;
-            }
-        }
-        if (ledon) {
-          if (entered){
-            ledGreenLight(LOW);
+    while(true) {
+      bool isClose = smeProximity.rangePollingRead() < 50;
+      switch (state) {
+        case STATE_FREE:
+          if (isClose) {
+            setLed(LED_BLUE);
+            sendMsg(enterMsg);
+            delay(300);
+            state = STATE_TAKEN;
           } else {
-            ledRedLight(LOW);
+            setLed(LED_GREEN);
           }
-            ledon = 0;
-        } else {
-            if (entered){
-              ledGreenLight(HIGH);
-            } else {
-              ledRedLight(HIGH);
-            }
-            ledon = 1;
-        }
-        delay(1000);
+          break;
+        case STATE_TAKEN:
+          if (!isClose) {
+            setLed(LED_BLUE);
+            sendMsg(exitMsg);
+            delay(300);
+            state = STATE_FREE;
+          } else {
+            setLed(LED_RED);
+          }
+      }
+      delay(500);
     }
-    ledRedLight(LOW);
-    ledGreenLight(LOW);
-    ledBlueLight(HIGH);
-    delay(10000);
+}
+
+void setLed(int color) {
+  if (ledstate == color) {
+    color = LED_OFF; // blink
+  }
+  switch (color) {
+    case LED_OFF:
+      ledRedLight(LOW);
+      ledGreenLight(LOW);
+      ledBlueLight(LOW);
+      break;
+    case LED_RED:
+      ledRedLight(HIGH);
+      ledGreenLight(LOW);
+      ledBlueLight(LOW);
+      break;
+    case LED_GREEN:
+      ledRedLight(LOW);
+      ledGreenLight(HIGH);
+      ledBlueLight(LOW);
+      break;
+    case LED_BLUE:
+      ledRedLight(LOW);
+      ledGreenLight(LOW);
+      ledBlueLight(HIGH);
+      break;
+  }
+  ledstate = color;
 }
 
 void sendMsg(char* msg) {
